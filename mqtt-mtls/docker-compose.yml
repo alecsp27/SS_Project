@@ -1,0 +1,19 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto-mtls
+    ports:
+      - "8883:8883"
+    volumes:
+      - ./config:/mosquitto/config
+      - ./certs:/mosquitto/certs
+
+  image-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    volumes:
+      - ./certs:/certs
+      - ./images:/images
+    depends_on:
+      - mosquitto
