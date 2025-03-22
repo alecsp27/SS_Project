@@ -7,13 +7,3 @@ services:
     volumes:
       - ./config:/mosquitto/config
       - ./certs:/mosquitto/certs
-
-  image-client:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-    volumes:
-      - ./certs:/certs
-      - ./images:/images
-    depends_on:
-      - mosquitto
