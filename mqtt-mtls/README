@@ -1,0 +1,31 @@
+Certificates:
+
+    Run:
+        chmod +x script-genereate.sh
+        ./script-genereate.sh
+
+Subscribe
+
+    sudo docker run -it --rm \
+        -v "$PWD/certs:/certs" \
+        eclipse-mosquitto mosquitto_sub \
+        --cafile /certs/ca.crt \
+        --cert /certs/client.crt \
+        --key /certs/client.key \
+        -h 172.17.0.1 \
+        -p 8883 \
+        -t test/topic \
+        -d
+
+Send message
+
+    docker run -it --rm \
+        -v "$PWD/certs:/certs" \
+        eclipse-mosquitto mosquitto_pub \
+        --cafile /certs/ca.crt \
+        --cert /certs/client.crt \
+        --key /certs/client.key \
+        -h 172.17.0.1 \
+        -p 8883 \
+        -t test/topic \
+        -m "Hello from mTLS MQTT!"
