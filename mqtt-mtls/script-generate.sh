@@ -38,15 +38,15 @@ fi
 
 # 2. Server key + CSR
 if [[ ! -f server.key ]]; then
-  echo "🔐 [2/6] Generating Server Key + CSR..."
+  echo "🔐 [2/6] Generating Server Key..."
   openssl genrsa -out server.key 2048
 fi
 
-echo "📄 Creating server CSR..."
+echo "📄 [3/6] Creating server CSR..."
 openssl req -new -key server.key -out server.csr -subj "/CN=$SERVER_CN"
 
 # 3. SAN config
-echo "✍️ [3/6] Creating $CONFIG_FILE with SAN..."
+echo "✍️ Creating $CONFIG_FILE with SANs..."
 cat > "$CONFIG_FILE" <<EOF
 [ req ]
 default_bits       = 2048
@@ -63,25 +63,26 @@ subjectAltName = @alt_names
 
 [ alt_names ]
 DNS.1 = $SERVER_CN
-DNS.2 = $SAN_EXTRA
+DNS.2 = mosquitto
+DNS.3 = $SAN_EXTRA
 IP.1 = $SAN_IP
 IP.2 = $SAN_DOCKER_BRIDGE
 EOF
 
 # 4. Server cert
-echo "🔐 [4/6] Signing Server Cert with SAN..."
+echo "🔐 [4/6] Signing Server Certificate with SAN..."
 openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
 -out server.crt -days $DAYS -sha256 -extfile "$CONFIG_FILE" -extensions req_ext
 
 # 5. Client cert
-echo "🔐 [5/6] Generating Client Cert..."
+echo "🔐 [5/6] Generating Client Certificate..."
 openssl genrsa -out client.key 2048
 openssl req -new -key client.key -out client.csr -subj "/CN=$CLIENT_CN"
 openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
 -out client.crt -days $DAYS -sha256
 
-# 6. Android P12
-echo "📦 [6/6] Exporting client.p12 for Android..."
+# 6. Android P12 bundle
+echo "📦 [6/6] Exporting client.p12 for Android (if needed)..."
 openssl pkcs12 -export \
   -in client.crt \
   -inkey client.key \
@@ -90,5 +91,5 @@ openssl pkcs12 -export \
   -name "$CLIENT_CN" \
   -passout pass:$PASSWORD
 
-echo "✅ Done!"
+echo "✅ All certificates generated successfully!"
 ls -l

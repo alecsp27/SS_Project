@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   mosquitto:
     image: eclipse-mosquitto
@@ -7,3 +9,34 @@ services:
     volumes:
       - ./config:/mosquitto/config
       - ./certs:/mosquitto/certs
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_DB: mqttdb
+      POSTGRES_USER: mqttuser
+      POSTGRES_PASSWORD: mqttpass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mqtt-db-client:
+    build:
+      context: ./mqtt_to_pg
+      dockerfile: Dockerfile.db
+    container_name: mqtt-mtls-db-client
+    depends_on:
+      - mosquitto
+      - postgres
+    volumes:
+      - ./certs:/app/certs
+    environment:
+      MQTT_BROKER: mosquitto
+      PG_HOST: postgres
+      PG_DB: mqttdb
+      PG_USER: mqttuser
+      PG_PASS: mqttpass
+      
+
+volumes:
+  pgdata:

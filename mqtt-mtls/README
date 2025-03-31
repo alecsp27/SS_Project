@@ -16,13 +16,13 @@ Run Subscribe
         --key /certs/client.key \
         -h host.docker.internal \
         -p 8883 \
-        -t test/topic \
+        -t camera/image \
         -d
-
+    
 
 Run Send message
 
-    docker run -it --rm \
+    docker run --rm -it \
         -v "$PWD/certs:/certs" \
         eclipse-mosquitto mosquitto_pub \
         --cafile /certs/ca.crt \
@@ -30,7 +30,6 @@ Run Send message
         --key /certs/client.key \
         -h host.docker.internal \
         -p 8883 \
-        -t test/topic \
-        -m "✅ Hello from secure MQTT PUB!" \
-        -d
+        -t camera/image \
+        -m "Hello MQTT-Postgres over mTLS!"
 
