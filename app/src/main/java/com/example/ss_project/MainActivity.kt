@@ -147,6 +147,36 @@ class MainActivity : ComponentActivity() {
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                     Toast.makeText(context, "Image Saved: ${photoFile.absolutePath}", Toast.LENGTH_SHORT).show()
+
+                    try {
+                        // ✅ Compress image to reduce payload size
+                        val compressedBytes = android.graphics.BitmapFactory.decodeFile(photoFile.absolutePath).let { bitmap ->
+                            val stream = java.io.ByteArrayOutputStream()
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, stream) // 70% quality
+                            stream.toByteArray()
+                        }
+
+                        val base64Image = android.util.Base64.encodeToString(compressedBytes, android.util.Base64.NO_WRAP)
+                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(compressedBytes, 0, compressedBytes.size)
+                        val width = bitmap.width
+                        val height = bitmap.height
+                        val timestamp = System.currentTimeMillis()
+
+                        val json = """
+                        {
+                            "filename": "${photoFile.name}",
+                            "timestamp": $timestamp,
+                            "width": $width,
+                            "height": $height,
+                            "image_base64": "$base64Image"
+                        }
+                    """.trimIndent()
+
+                        mqttClientManager.publish("test/topic/image", json.toByteArray())
+                        Log.i("MainActivity", "📤 Image JSON published (${json.length} bytes)")
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "❌ Failed to encode or publish image: ${e.message}", e)
+                    }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -155,4 +185,6 @@ class MainActivity : ComponentActivity() {
             }
         )
     }
+
+
 }

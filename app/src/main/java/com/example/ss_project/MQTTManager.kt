@@ -93,17 +93,19 @@ class MqttClientManager(
         })
     }
 
-    fun publish(topic: String, message: String) {
+    fun publish(topic: String, payload: ByteArray) {
         if (isConnected()) {
-            mqttClient?.publish(topic, MqttMessage(message.toByteArray()))
-            Log.d("MqttClientManager", "📤 Published to $topic: $message")
-        } else {
-            Log.w("MqttClientManager", "⚠️ Cannot publish — MQTT not connected")
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(context, "MQTT not connected", Toast.LENGTH_SHORT).show()
+            val message = MqttMessage(payload).apply {
+                qos = 1
             }
+            mqttClient?.publish(topic, message)
+            Log.d("MqttClientManager", "📤 Published binary to $topic (${payload.size} bytes)")
+        } else {
+            Log.w("MqttClientManager", "⚠️ Cannot publish binary — MQTT not connected")
+            Toast.makeText(context, "MQTT not connected", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     private fun getSSLSocketFactory(): SSLSocketFactory {
         try {
