@@ -44,9 +44,10 @@ android {
 
 
 dependencies {
+    implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
     // Paho MQTT for Android
+    implementation("com.github.hannesa2:paho.mqtt.android:4.3")
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
-    implementation("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
 
     // CameraX for image capture
     implementation("androidx.camera:camera-core:1.3.0")
