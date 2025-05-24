@@ -11,7 +11,7 @@ SAN_IP="127.0.0.1"
 SAN_DOCKER_BRIDGE="172.17.0.1"
 SAN_EXTRA="host.docker.internal"
 
-ANDROID_RES_RAW_PATH="../../app/src/main/res/raw"  # <-- Adjust if needed
+ANDROID_RES_RAW_PATH="../app/src/main/res/raw"  # <-- Adjust if needed
 FORCE_REGEN=false
 if [[ "$1" == "--force" ]]; then
   FORCE_REGEN=true
