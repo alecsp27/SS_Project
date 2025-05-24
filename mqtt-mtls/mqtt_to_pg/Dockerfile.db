@@ -1,8 +1,22 @@
+# Use Python 3.11 slim image
 FROM python:3.11-slim
 
+# Set working directory
 WORKDIR /app
-COPY mqtt_to_pg.py .
 
-RUN pip install paho-mqtt psycopg2-binary
+# Copy application code and certificates
+COPY ./mqtt_to_pg/mqtt_to_pg.py /app/
+COPY certs /app/certs/
 
-CMD ["python", "mqtt_to_pg.py"]
+# Install dependencies
+RUN pip install --no-cache-dir paho-mqtt psycopg2-binary
+
+# Set environment variables with defaults (can override with docker-compose or env)
+ENV MQTT_BROKER=mosquitto \
+    PG_HOST=postgres \
+    PG_DB=mqttdb \
+    PG_USER=mqttuser \
+    PG_PASS=mqttpass
+
+# Run the application
+CMD ["python", "mqtt_image_app.py"]

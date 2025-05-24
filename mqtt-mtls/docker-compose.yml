@@ -22,8 +22,8 @@ services:
 
   mqtt-db-client:
     build:
-      context: ./mqtt_to_pg
-      dockerfile: Dockerfile.db
+      context: .
+      dockerfile: mqtt_to_pg/Dockerfile.db
     container_name: mqtt-mtls-db-client
     depends_on:
       - mosquitto
