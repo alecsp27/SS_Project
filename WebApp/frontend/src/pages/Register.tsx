@@ -1,31 +1,39 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Login: React.FC = () => {
+const allowedRoles = ["admin", "operator", "viewer"];
+
+const Register: React.FC = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [role, setRole] = useState("");
     const [error, setError] = useState("");
     const navigate = useNavigate();
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
+        if (!allowedRoles.includes(role)) {
+            setError("Invalid role selected.");
+            return;
+        }
+
         try {
-            const response = await fetch("http://localhost:5000/api/auth/login", {
+            const response = await fetch("http://localhost:5000/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ username, password, role }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || "Login failed");
+                throw new Error(data.message || "Registration failed");
             }
 
             localStorage.setItem("token", data.token);
-            navigate("/gallery");
+            navigate("/");
         } catch (err) {
             setError((err as Error).message);
         }
@@ -34,9 +42,9 @@ const Login: React.FC = () => {
     return (
         <div style={styles.container}>
             <div style={styles.card}>
-                <h2 style={styles.title}>Login</h2>
+                <h2 style={styles.title}>Register</h2>
                 {error && <p style={styles.error}>{error}</p>}
-                <form onSubmit={handleLogin}>
+                <form onSubmit={handleRegister}>
                     <div style={styles.formGroup}>
                         <label>Username:</label>
                         <input
@@ -57,15 +65,33 @@ const Login: React.FC = () => {
                             required
                         />
                     </div>
-                    <button type="submit" style={styles.button}>Login</button>
+                    <div style={styles.formGroup}>
+                        <label>Role:</label>
+                        <select
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            style={styles.input}
+                            required
+                        >
+                            <option value="">Select role</option>
+                            {allowedRoles.map((r) => (
+                                <option key={r} value={r}>
+                                    {r}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <button type="submit" style={styles.button}>
+                        Register
+                    </button>
                 </form>
                 <p style={{ marginTop: "15px" }}>
-                    Don't have an account?{" "}
+                    Already have an account?{" "}
                     <button
-                        onClick={() => navigate("/register")}
+                        onClick={() => navigate("/")}
                         style={styles.linkButton}
                     >
-                        Register
+                        Login
                     </button>
                 </p>
             </div>
@@ -108,7 +134,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "10px",
         borderRadius: "5px",
         border: "none",
-        backgroundColor: "#4f46e5",
+        backgroundColor: "#16a34a",
         color: "white",
         cursor: "pointer",
         fontWeight: "bold",
@@ -128,4 +154,4 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
 };
 
-export default Login;
+export default Register;
