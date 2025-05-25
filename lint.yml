@@ -1,0 +1,26 @@
+name: ESLint Check
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install frontend dependencies
+        run: cd WebApp/frontend && npm ci
+
+      - name: Lint frontend
+        run: cd WebApp/frontend && npx eslint "src/**/*.{js,jsx,ts,tsx}"
+
+      - name: Install backend dependencies
+        run: cd WebApp/backend && npm ci
+
+      - name: Lint backend
+        run: cd WebApp/backend && npx eslint "src/**/*.{js,ts}"
