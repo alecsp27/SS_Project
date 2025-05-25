@@ -1,0 +1,160 @@
+/* Gallery.css */
+.gallery {
+  text-align: center;
+  padding: 2rem;
+  background: #f9f9f9;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 0 2rem;
+}
+
+.gallery-item {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  overflow: hidden;
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+}
+.gallery-item:hover {
+  transform: translateY(-3px);
+}
+
+.gallery-thumbnail {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.meta {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.controls {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+.controls button {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 4px;
+  background: #0d6efd;
+  color: white;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.controls button:hover {
+  background: #084298;
+}
+
+/* fullscreen overlay */
+.fullscreen-view {
+  position: fixed;
+  inset: 0;
+  background: rgba(30,30,30,0.95);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  overflow-y: auto;
+  z-index: 999;
+}
+
+/* top bar with back + download */
+.fs-top-bar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.back-button,
+.download-filtered {
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.back-button {
+  background: #ffffff;
+  color: #1e1e1e;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+}
+.back-button:hover {
+  background: #ddd;
+}
+
+.download-filtered {
+  background: #198754;
+  color: white;
+}
+.download-filtered:hover {
+  background: #146c43;
+}
+
+.fullscreen-image {
+  max-width: 80%;
+  max-height: 60vh;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 20px rgba(255,255,255,0.2);
+  transition: filter 0.2s;
+}
+
+.meta-full {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 1.5rem;
+}
+
+.filter-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 90%;
+  max-width: 500px;
+  margin-bottom: 2rem;
+}
+
+.filter-controls label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ddd;
+  font-size: 0.95rem;
+}
+
+.filter-controls input[type="range"] {
+  width: 60%;
+  accent-color: #0d6efd;
+}
+
+.analysis-canvas {
+  width: 60%;
+  max-width: 600px;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+}
