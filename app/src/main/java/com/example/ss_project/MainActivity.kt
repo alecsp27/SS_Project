@@ -1,6 +1,9 @@
 package com.example.ss_project
+
 import android.Manifest
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -17,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.ss_project.mqtt.MqttClientManager
 import com.example.ss_project.ui.theme.SS_ProjectTheme
 import java.io.File
 import java.util.concurrent.ExecutorService
@@ -25,6 +29,7 @@ import java.util.concurrent.Executors
 class MainActivity : ComponentActivity() {
     private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var mqttClientManager: MqttClientManager
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -33,11 +38,32 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Camera permission denied", Toast.LENGTH_LONG).show()
         }
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         outputDirectory = getOutputDirectory()
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+        // ✅ Initialize and connect MQTT
+        mqttClientManager = MqttClientManager(this)
+        mqttClientManager.connect()
+
+        // ✅ Test connection after a small delay
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (mqttClientManager.isConnected()) {
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(this, "✅ MQTT connected", Toast.LENGTH_SHORT).show()
+                }
+                Log.i("MainActivity", "MQTT connected")
+            } else {
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(this, "❌ MQTT NOT connected", Toast.LENGTH_SHORT).show()
+                }
+                Log.e("MainActivity", "MQTT NOT connected")
+            }
+        }, 2000)
+
 
         setContent {
             SS_ProjectTheme {
@@ -56,6 +82,9 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+        if (mqttClientManager.isConnected()) {
+            mqttClientManager.disconnect()
+        }
     }
 
     @Composable
@@ -118,6 +147,36 @@ class MainActivity : ComponentActivity() {
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                     Toast.makeText(context, "Image Saved: ${photoFile.absolutePath}", Toast.LENGTH_SHORT).show()
+
+                    try {
+                        // ✅ Compress image to reduce payload size
+                        val compressedBytes = android.graphics.BitmapFactory.decodeFile(photoFile.absolutePath).let { bitmap ->
+                            val stream = java.io.ByteArrayOutputStream()
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, stream) // 70% quality
+                            stream.toByteArray()
+                        }
+
+                        val base64Image = android.util.Base64.encodeToString(compressedBytes, android.util.Base64.NO_WRAP)
+                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(compressedBytes, 0, compressedBytes.size)
+                        val width = bitmap.width
+                        val height = bitmap.height
+                        val timestamp = System.currentTimeMillis()
+
+                        val json = """
+                        {
+                            "filename": "${photoFile.name}",
+                            "timestamp": $timestamp,
+                            "width": $width,
+                            "height": $height,
+                            "image_base64": "$base64Image"
+                        }
+                    """.trimIndent()
+
+                        mqttClientManager.publish("test/topic/image", json.toByteArray())
+                        Log.i("MainActivity", "📤 Image JSON published (${json.length} bytes)")
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "❌ Failed to encode or publish image: ${e.message}", e)
+                    }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -126,4 +185,6 @@ class MainActivity : ComponentActivity() {
             }
         )
     }
+
+
 }

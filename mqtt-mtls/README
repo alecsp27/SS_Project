@@ -1,0 +1,38 @@
+Certificates:
+
+    Run:
+        chmod +x script-genereate.sh
+        ./script-genereate.sh
+        docker-compose up -d
+
+
+Run Subscribe
+
+    sudo docker run -it --rm \
+        --network host \
+        -v "$PWD/certs:/certs:ro" \
+        eclipse-mosquitto \
+        mosquitto_sub \
+            --cafile /certs/ca.crt \
+            --cert /certs/client.crt \
+            --key /certs/client.key \
+            -h localhost \
+            -p 8883 \
+            -t test/topic/image \
+            -d
+
+    
+
+Run Send message
+
+    docker run --rm -it \
+        -v "$PWD/certs:/certs" \
+        eclipse-mosquitto mosquitto_pub \
+        --cafile /certs/ca.crt \
+        --cert /certs/client.crt \
+        --key /certs/client.key \
+        -h host.docker.internal \
+        -p 8883 \
+        -t camera/image \
+        -m "Hello MQTT-Postgres over mTLS!"
+
