@@ -36,7 +36,8 @@ services:
       PG_DB: mqttdb
       PG_USER: mqttuser
       PG_PASS: mqttpass
-      
+      P12_PASSWORD: password123
+      MQTT_TOPIC: test/topic/image
 
 volumes:
   pgdata:

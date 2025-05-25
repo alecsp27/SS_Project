@@ -9,14 +9,18 @@ COPY ./mqtt_to_pg/mqtt_to_pg.py /app/
 COPY certs /app/certs/
 
 # Install dependencies
-RUN pip install --no-cache-dir paho-mqtt psycopg2-binary
+RUN pip install --no-cache-dir paho-mqtt psycopg2-binary cryptography
+
 
 # Set environment variables with defaults (can override with docker-compose or env)
 ENV MQTT_BROKER=mosquitto \
     PG_HOST=postgres \
     PG_DB=mqttdb \
     PG_USER=mqttuser \
-    PG_PASS=mqttpass
+    PG_PASS=mqttpass \
+    P12_PASSWORD=password123 \
+    CA_CERT_PATH=/app/certs/ca.crt \
+    P12_PATH=/app/certs/client.p12
 
 # Run the application
-CMD ["python", "mqtt_image_app.py"]
+CMD ["python", "mqtt_to_pg.py"]
