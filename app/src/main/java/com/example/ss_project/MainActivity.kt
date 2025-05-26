@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.core.content.ContextCompat
 import com.example.ss_project.mqtt.MqttClientManager
 import com.example.ss_project.ui.theme.SS_ProjectTheme
@@ -68,7 +70,6 @@ class MainActivity : ComponentActivity() {
             }
         }, 2000)
 
-
         setContent {
             SS_ProjectTheme {
                 CameraScreen(outputDirectory, cameraExecutor, this@MainActivity)
@@ -100,6 +101,14 @@ class MainActivity : ComponentActivity() {
         var showMenu by remember { mutableStateOf(false) }
         var showExposureDialog by remember { mutableStateOf(false) }
         var currentExposure by remember { mutableIntStateOf(0) }
+        var menuAnchor by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+        var zoomRatio by remember { mutableFloatStateOf(1f) }
+        val maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 10f
+        val zoomRange = 1f..maxZoom
+        var showZoomDialog by remember { mutableStateOf(false) }
+
+        var selectedResolution by remember { mutableStateOf("Default") }
+        val availableResolutions = listOf("Default", "HD", "Full HD", "4K")
 
         val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
@@ -130,41 +139,67 @@ class MainActivity : ComponentActivity() {
             Column(modifier = Modifier.fillMaxSize()) {
                 AndroidView(factory = { previewView }, modifier = Modifier.weight(1f))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 ) {
                     Button(
                         onClick = {
                             imageCapture?.let { capturePhoto(context, it, outputDirectory, cameraExecutor) }
                         },
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.align(Alignment.Center)
                     ) {
                         Text("Capture Image")
                     }
 
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Settings")
-                    }
-                }
-            }
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box {
+                            IconButton(
+                                onClick = { showMenu = true },
+                                modifier = Modifier.onGloballyPositioned {
+                                    val position = it.boundsInWindow()
+                                    menuAnchor = position
+                                }
+                            ) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Settings")
+                            }
 
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(text = { Text("Adjust Brightness") }, onClick = {
-                    showExposureDialog = true
-                    showMenu = false
-                })
-                DropdownMenuItem(text = { Text("Toggle Night Mode") }, onClick = {
-                    camera?.let {
-                        val hasFlash = it.cameraInfo.hasFlashUnit()
-                        if (hasFlash) {
-                            val torchOn = it.cameraInfo.torchState.value == TorchState.ON
-                            it.cameraControl.enableTorch(!torchOn)
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Adjust Brightness") },
+                                    onClick = {
+                                        showExposureDialog = true
+                                        showMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Set Zoom") },
+                                    onClick = {
+                                        showZoomDialog = true
+                                        showMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Resolution: $selectedResolution") },
+                                    onClick = {
+                                        // For now we’ll just cycle resolution in round-robin fashion
+                                        val currentIndex = availableResolutions.indexOf(selectedResolution)
+                                        selectedResolution = availableResolutions[(currentIndex + 1) % availableResolutions.size]
+                                        Toast.makeText(context, "Resolution set to $selectedResolution", Toast.LENGTH_SHORT).show()
+                                        showMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
-                    showMenu = false
-                })
+                }
             }
 
             if (showExposureDialog) {
@@ -179,6 +214,31 @@ class MainActivity : ComponentActivity() {
                         onDismiss = { showExposureDialog = false }
                     )
                 }
+            }
+
+            if (showZoomDialog) {
+                AlertDialog(
+                    onDismissRequest = { showZoomDialog = false },
+                    title = { Text("Set Zoom") },
+                    text = {
+                        Column {
+                            Slider(
+                                value = zoomRatio,
+                                onValueChange = {
+                                    zoomRatio = it
+                                    camera?.cameraControl?.setZoomRatio(it)
+                                },
+                                valueRange = zoomRange
+                            )
+                            Text("Zoom: ${"%.2f".format(zoomRatio)}x")
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showZoomDialog = false }) {
+                            Text("OK")
+                        }
+                    }
+                )
             }
         }
     }
@@ -265,6 +325,4 @@ class MainActivity : ComponentActivity() {
             }
         )
     }
-
-
 }
