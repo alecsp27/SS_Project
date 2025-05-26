@@ -16,9 +16,24 @@ const DeviceList: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
 
   useEffect(() => {
+    axios.defaults.baseURL = 'http://localhost:5000';
     axios.get('/api/devices')
       .then(res => setDevices(res.data))
-      .catch(err => console.error('❌ Failed to fetch devices:', err));
+      .catch(err => {
+        console.error('❌ Failed to fetch devices:', err)
+
+        const mockDevice: Device = {
+          deviceId: 'Device 1',
+          status: 'online',
+          lastSeen: new Date().toISOString(),
+          activeParams: {
+            brightness: 0,
+            exposure: 0,
+          }
+        };
+
+        setDevices([mockDevice]);
+      });
   }, []);
 
   return (
