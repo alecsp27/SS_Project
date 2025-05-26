@@ -5,19 +5,23 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.util.Range
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.ss_project.mqtt.MqttClientManager
@@ -90,8 +94,12 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun CameraScreen(outputDirectory: File, cameraExecutor: ExecutorService, lifecycleOwner: ComponentActivity) {
         val context = LocalContext.current
-        val previewView = remember { androidx.camera.view.PreviewView(context) }
+        val previewView = remember { PreviewView(context) }
         var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
+        var camera: Camera? by remember { mutableStateOf(null) }
+        var showMenu by remember { mutableStateOf(false) }
+        var showExposureDialog by remember { mutableStateOf(false) }
+        var currentExposure by remember { mutableIntStateOf(0) }
 
         val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
@@ -106,30 +114,102 @@ class MainActivity : ComponentActivity() {
 
                 try {
                     cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
+                    camera = cameraProvider.bindToLifecycle(
                         lifecycleOwner, cameraSelector, preview, imageCapture
                     )
+                    camera?.cameraInfo?.exposureState?.let { state ->
+                        currentExposure = state.exposureCompensationIndex
+                    }
                 } catch (e: Exception) {
                     Log.e("CameraScreen", "Camera initialization failed", e)
                 }
             }, ContextCompat.getMainExecutor(context))
         }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            AndroidView(factory = { previewView }, modifier = Modifier.weight(1f))
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                AndroidView(factory = { previewView }, modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = {
-                    imageCapture?.let { capturePhoto(context, it, outputDirectory, cameraExecutor) }
-                },
-            ) {
-                Text("Capture Image")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = {
+                            imageCapture?.let { capturePhoto(context, it, outputDirectory, cameraExecutor) }
+                        },
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text("Capture Image")
+                    }
+
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Settings")
+                    }
+                }
+            }
+
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(text = { Text("Adjust Brightness") }, onClick = {
+                    showExposureDialog = true
+                    showMenu = false
+                })
+                DropdownMenuItem(text = { Text("Toggle Night Mode") }, onClick = {
+                    camera?.let {
+                        val hasFlash = it.cameraInfo.hasFlashUnit()
+                        if (hasFlash) {
+                            val torchOn = it.cameraInfo.torchState.value == TorchState.ON
+                            it.cameraControl.enableTorch(!torchOn)
+                        }
+                    }
+                    showMenu = false
+                })
+            }
+
+            if (showExposureDialog) {
+                camera?.cameraInfo?.exposureState?.let { exposureState ->
+                    ExposureDialog(
+                        current = currentExposure,
+                        range = exposureState.exposureCompensationRange,
+                        onValueChange = {
+                            currentExposure = it
+                            camera?.cameraControl?.setExposureCompensationIndex(it)
+                        },
+                        onDismiss = { showExposureDialog = false }
+                    )
+                }
             }
         }
+    }
+
+    @Composable
+    fun ExposureDialog(current: Int, range: Range<Int>, onValueChange: (Int) -> Unit, onDismiss: () -> Unit) {
+        var sliderValue by remember { mutableFloatStateOf(current.toFloat()) }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Brightness") },
+            text = {
+                Column {
+                    Slider(
+                        value = sliderValue,
+                        valueRange = range.lower.toFloat()..range.upper.toFloat(),
+                        steps = (range.upper - range.lower - 1).coerceAtLeast(0),
+                        onValueChange = {
+                            sliderValue = it
+                            onValueChange(it.toInt())
+                        }
+                    )
+                    Text("Current: ${sliderValue.toInt()}")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     private fun capturePhoto(
